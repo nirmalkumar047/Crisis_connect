@@ -29,17 +29,7 @@ import {
   AlertCircle,
   Upload,
   User,
-  MessageCircle,
-  Download,
-  FileText,
-  Cloud,
-  CloudRain,
-  Sun,
-  CloudSnow,
-  Wind,
-  Thermometer,
-  Droplets,
-  Eye
+  MessageCircle
 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
@@ -142,16 +132,7 @@ const resources = [
   { type: 'Emergency Shelters', available: 25, deployed: 12, location: 'Command Center', lastUpdated: '10 mins ago' },
 ];
 
-// Weather monitoring locations in Delhi NCR
-const weatherLocations = [
-  { name: 'Central Delhi', lat: 28.6139, lng: 77.2090 },
-  { name: 'Noida', lat: 28.5355, lng: 77.3910 },
-  { name: 'Gurgaon', lat: 28.4595, lng: 77.0266 },
-  { name: 'Faridabad', lat: 28.4089, lng: 77.3178 },
-  { name: 'Ghaziabad', lat: 28.6692, lng: 77.4538 }
-];
-
-const Dashboard = () => {
+const Dash = () => {
   const [requests, setRequests] = useState(initialRequests);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [refreshTime, setRefreshTime] = useState(new Date());
@@ -159,9 +140,6 @@ const Dashboard = () => {
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [realTimeData, setRealTimeData] = useState([]);
-  const [weatherData, setWeatherData] = useState({});
-  const [weatherAlerts, setWeatherAlerts] = useState([]);
-  const [showNotificationPanel, setShowNotificationPanel] = useState(false);
 
   // New request form state
   const [newRequest, setNewRequest] = useState({
@@ -185,130 +163,10 @@ const Dashboard = () => {
     totalResourcesDeployed: resources.reduce((sum, r) => sum + r.deployed, 0)
   });
 
-  // Weather monitoring system
-  const fetchWeatherData = async (location) => {
-    try {
-      // Using Open-Meteo API (free, no API key required)
-      const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lng}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m,precipitation&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Asia/Kolkata&alerts=true`
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          location: location.name,
-          temperature: Math.round(data.current.temperature_2m),
-          humidity: data.current.relative_humidity_2m,
-          windSpeed: data.current.wind_speed_10m,
-          precipitation: data.current.precipitation,
-          weatherCode: data.current.weather_code,
-          forecast: data.daily
-        };
-      }
-    } catch (error) {
-      console.error('Weather API error:', error);
-      // Return mock data as fallback
-      return {
-        location: location.name,
-        temperature: Math.round(20 + Math.random() * 15),
-        humidity: Math.round(40 + Math.random() * 40),
-        windSpeed: Math.round(Math.random() * 20),
-        precipitation: Math.random() * 5,
-        weatherCode: Math.floor(Math.random() * 4),
-        forecast: null
-      };
-    }
-  };
-
-  const getWeatherIcon = (code) => {
-    // Weather code interpretation
-    if (code <= 1) return <Sun className="text-yellow-500" size={16} />;
-    if (code <= 3) return <Cloud className="text-gray-500" size={16} />;
-    if (code <= 67) return <CloudRain className="text-blue-500" size={16} />;
-    if (code <= 77) return <CloudSnow className="text-blue-300" size={16} />;
-    return <Cloud className="text-gray-500" size={16} />;
-  };
-
-  const checkWeatherAlerts = (weatherData) => {
-    const alerts = [];
-    
-    Object.values(weatherData).forEach(data => {
-      if (data.precipitation > 10) {
-        alerts.push({
-          id: Date.now() + Math.random(),
-          type: 'severe-weather',
-          severity: 'high',
-          location: data.location,
-          message: `Heavy rainfall alert: ${data.precipitation}mm precipitation detected in ${data.location}`,
-          timestamp: new Date().toLocaleTimeString(),
-          weatherType: 'rain'
-        });
-      }
-      
-      if (data.windSpeed > 40) {
-        alerts.push({
-          id: Date.now() + Math.random(),
-          type: 'severe-weather',
-          severity: 'critical',
-          location: data.location,
-          message: `High wind speed alert: ${data.windSpeed} km/h winds in ${data.location}`,
-          timestamp: new Date().toLocaleTimeString(),
-          weatherType: 'wind'
-        });
-      }
-      
-      if (data.temperature > 40 || data.temperature < 5) {
-        alerts.push({
-          id: Date.now() + Math.random(),
-          type: 'severe-weather',
-          severity: data.temperature > 40 ? 'high' : 'medium',
-          location: data.location,
-          message: `Extreme temperature alert: ${data.temperature}°C in ${data.location}`,
-          timestamp: new Date().toLocaleTimeString(),
-          weatherType: 'temperature'
-        });
-      }
-    });
-    
-    return alerts;
-  };
-
-  const sendWeatherAlert = (alert) => {
-    // Simulate sending alerts to people in affected area
-    const affectedRequests = requests.filter(req => req.area.includes(alert.location));
-    
-    const alertNotification = {
-      id: Date.now(),
-      type: 'weather-alert',
-      message: `⚠️ WEATHER ALERT: ${alert.message}. Residents and relief teams in the area have been notified.`,
-      timestamp: new Date().toLocaleTimeString(),
-      read: false,
-      severity: alert.severity,
-      location: alert.location,
-      affectedPeople: affectedRequests.reduce((sum, req) => sum + req.victims, 0)
-    };
-
-    setNotifications(prev => [alertNotification, ...prev.slice(0, 9)]);
-  };
-
-  // Enhanced real-time updates with weather monitoring
+  // Simulate real-time updates and notifications
   useEffect(() => {
-    const interval = setInterval(async () => {
+    const interval = setInterval(() => {
       setRefreshTime(new Date());
-      
-      // Update weather data for all locations
-      const newWeatherData = {};
-      for (const location of weatherLocations) {
-        newWeatherData[location.name] = await fetchWeatherData(location);
-      }
-      setWeatherData(newWeatherData);
-      
-      // Check for weather alerts
-      const alerts = checkWeatherAlerts(newWeatherData);
-      if (alerts.length > 0) {
-        setWeatherAlerts(prev => [...alerts, ...prev.slice(0, 10)]);
-        alerts.forEach(alert => sendWeatherAlert(alert));
-      }
       
       // Add real-time data point
       setRealTimeData(prev => [...prev.slice(-9), {
@@ -318,7 +176,7 @@ const Dashboard = () => {
       }]);
 
       // Simulate new urgent notification
-      if (Math.random() > 0.92) {
+      if (Math.random() > 0.9) {
         const newNotification = {
           id: Date.now(),
           type: 'urgent',
@@ -330,7 +188,7 @@ const Dashboard = () => {
       }
 
       // Simulate random new request
-      if (Math.random() > 0.88) {
+      if (Math.random() > 0.85) {
         const areas = ['East Delhi', 'West Delhi', 'South Delhi', 'North Delhi', 'Gurgaon', 'Noida', 'Faridabad'];
         const descriptions = [
           'Urgent food assistance needed for elderly residents',
@@ -359,23 +217,10 @@ const Dashboard = () => {
         };
         setRequests(prev => [newReq, ...prev]);
       }
-    }, 20000); // Check every 20 seconds
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [requests.length]);
-
-  // Initialize weather data on component mount
-  useEffect(() => {
-    const initWeatherData = async () => {
-      const initialWeatherData = {};
-      for (const location of weatherLocations) {
-        initialWeatherData[location.name] = await fetchWeatherData(location);
-      }
-      setWeatherData(initialWeatherData);
-    };
-    
-    initWeatherData();
-  }, []);
 
   const handleSubmitRequest = (e) => {
     e.preventDefault();
@@ -449,132 +294,6 @@ const Dashboard = () => {
     ));
   };
 
-  // Function to handle phone calls
-  const handlePhoneCall = (contactNumber) => {
-    if (contactNumber && contactNumber.startsWith('+91')) {
-      // In a real app, this would initiate a call
-      setNotifications(prev => [{
-        id: Date.now(),
-        type: 'info',
-        message: `Initiating call to ${contactNumber}`,
-        timestamp: new Date().toLocaleTimeString(),
-        read: false
-      }, ...prev.slice(0, 4)]);
-    }
-  };
-
-  // Function to handle messaging
-  const handleMessage = (requestId) => {
-    setNotifications(prev => [{
-      id: Date.now(),
-      type: 'info',
-      message: `Message sent to request #${requestId}`,
-      timestamp: new Date().toLocaleTimeString(),
-      read: false
-    }, ...prev.slice(0, 4)]);
-  };
-
-  // Function to handle navigation
-  const handleNavigation = (lat, lng, area) => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const googleMapsUrl = `https://www.google.com/maps/dir/${position.coords.latitude},${position.coords.longitude}/${lat},${lng}`;
-          window.open(googleMapsUrl, '_blank');
-        },
-        () => {
-          // Fallback: just open the location in maps
-          const googleMapsUrl = `https://www.google.com/maps/search/${lat},${lng}`;
-          window.open(googleMapsUrl, '_blank');
-        }
-      );
-    } else {
-      const googleMapsUrl = `https://www.google.com/maps/search/${lat},${lng}`;
-      window.open(googleMapsUrl, '_blank');
-    }
-    
-    setNotifications(prev => [{
-      id: Date.now(),
-      type: 'info',
-      message: `Navigation started to ${area}`,
-      timestamp: new Date().toLocaleTimeString(),
-      read: false
-    }, ...prev.slice(0, 4)]);
-  };
-
-  // Function to export data
-  const exportData = () => {
-    const dataToExport = {
-      requests,
-      volunteers,
-      resources,
-      weatherData,
-      performanceMetrics,
-      exportedAt: new Date().toISOString()
-    };
-    
-    const dataStr = JSON.stringify(dataToExport, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    
-    const exportFileDefaultName = `disaster-relief-data-${new Date().toISOString().split('T')[0]}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-    
-    setNotifications(prev => [{
-      id: Date.now(),
-      type: 'success',
-      message: 'Data exported successfully',
-      timestamp: new Date().toLocaleTimeString(),
-      read: false
-    }, ...prev.slice(0, 4)]);
-  };
-
-  // Function to generate report
-  const generateReport = () => {
-    const report = {
-      generatedAt: new Date().toISOString(),
-      summary: {
-        totalRequests: requests.length,
-        pendingRequests: requests.filter(r => r.status === 'pending').length,
-        inProgressRequests: requests.filter(r => r.status === 'in-progress').length,
-        completedRequests: requests.filter(r => r.status === 'completed').length,
-        totalVictimsAffected: requests.reduce((sum, r) => sum + r.victims, 0),
-        averageResponseTime: performanceMetrics.averageResponseTime,
-        completionRate: performanceMetrics.completionRate
-      },
-      weatherStatus: Object.keys(weatherData).map(location => ({
-        location,
-        temperature: weatherData[location]?.temperature,
-        conditions: weatherData[location]?.weatherCode
-      })),
-      resourceStatus: resources.map(r => ({
-        type: r.type,
-        availability: Math.round((r.available / (r.available + r.deployed)) * 100)
-      }))
-    };
-    
-    const reportStr = JSON.stringify(report, null, 2);
-    const reportUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(reportStr);
-    
-    const reportFileDefaultName = `disaster-relief-report-${new Date().toISOString().split('T')[0]}.json`;
-    
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', reportUri);
-    linkElement.setAttribute('download', reportFileDefaultName);
-    linkElement.click();
-    
-    setNotifications(prev => [{
-      id: Date.now(),
-      type: 'success',
-      message: 'Report generated and downloaded',
-      timestamp: new Date().toLocaleTimeString(),
-      read: false
-    }, ...prev.slice(0, 4)]);
-  };
-
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'critical': return '#dc2626';
@@ -614,7 +333,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      {/* Enhanced Header with Real-time Weather and Alerts */}
+      {/* Enhanced Header with Real-time Alerts */}
       <div className="bg-white shadow-lg border-b border-blue-100">
         <div className="px-6 py-4">
           <div className="flex justify-between items-center">
@@ -627,26 +346,14 @@ const Dashboard = () => {
                   </div>
                   Smart Relief Coordination Hub
                 </h1>
-                <p className="text-gray-600 mt-1">AI-powered disaster response with real-time weather monitoring</p>
+                <p className="text-gray-600 mt-1">AI-powered disaster response and resource management</p>
               </div>
             </div>
             
             <div className="flex items-center gap-4">
-              {/* Weather Status */}
-              <div className="bg-blue-50 px-4 py-2 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2 text-sm">
-                  <Cloud className="text-blue-600" size={16} />
-                  <span className="font-medium">Weather Monitor Active</span>
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                </div>
-              </div>
-
               {/* Real-time Notifications */}
               <div className="relative">
-                <button 
-                  onClick={() => setShowNotificationPanel(!showNotificationPanel)}
-                  className="bg-red-100 text-red-600 p-2 rounded-full hover:bg-red-200 relative transition-colors"
-                >
+                <button className="bg-red-100 text-red-600 p-2 rounded-full hover:bg-red-200 relative">
                   <Bell size={20} />
                   {notifications.filter(n => !n.read).length > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -654,31 +361,12 @@ const Dashboard = () => {
                     </span>
                   )}
                 </button>
-                {showNotificationPanel && notifications.length > 0 && (
-                  <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border max-h-80 overflow-y-auto z-50">
-                    <div className="p-3 border-b border-gray-100 bg-gray-50">
-                      <h3 className="font-bold text-gray-900">Live Notifications</h3>
-                    </div>
-                    {notifications.slice(0, 10).map(notification => (
-                      <div key={notification.id} className="p-3 border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start gap-3">
-                          <div className={`w-2 h-2 rounded-full mt-2 ${
-                            notification.type === 'weather-alert' ? 'bg-orange-500' :
-                            notification.type === 'success' ? 'bg-green-500' :
-                            notification.type === 'urgent' ? 'bg-red-500' : 'bg-blue-500'
-                          }`}></div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">{notification.message}</p>
-                            <div className="flex justify-between items-center mt-1">
-                              <p className="text-xs text-gray-500">{notification.timestamp}</p>
-                              {notification.type === 'weather-alert' && notification.affectedPeople && (
-                                <span className="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded">
-                                  {notification.affectedPeople} people affected
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+                {notifications.length > 0 && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border max-h-64 overflow-y-auto z-50">
+                    {notifications.slice(0, 5).map(notification => (
+                      <div key={notification.id} className="p-3 border-b border-gray-100 hover:bg-gray-50">
+                        <p className="text-sm font-medium">{notification.message}</p>
+                        <p className="text-xs text-gray-500 mt-1">{notification.timestamp}</p>
                       </div>
                     ))}
                   </div>
@@ -688,7 +376,7 @@ const Dashboard = () => {
               {/* Submit Request Button */}
               <button 
                 onClick={() => setShowRequestForm(true)}
-                className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2 font-medium shadow-lg transition-colors"
+                className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 flex items-center gap-2 font-medium shadow-lg"
               >
                 <Plus size={16} />
                 Report Emergency
@@ -706,7 +394,7 @@ const Dashboard = () => {
                 </div>
                 <button 
                   onClick={() => setRefreshTime(new Date())}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center gap-2"
                 >
                   <RefreshCw size={16} />
                   Refresh
@@ -715,62 +403,9 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-
-        {/* Weather Alert Banner */}
-        {weatherAlerts.length > 0 && (
-          <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2">
-            <div className="flex items-center gap-2 animate-pulse">
-              <AlertTriangle size={20} />
-              <span className="font-bold">ACTIVE WEATHER ALERTS:</span>
-              <span>{weatherAlerts[0].message}</span>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Weather Dashboard Strip */}
-      {Object.keys(weatherData).length > 0 && (
-        <div className="bg-white border-b border-gray-200 px-6 py-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-gray-900 flex items-center gap-2">
-              <Cloud className="text-blue-500" size={20} />
-              Live Weather Monitoring
-            </h3>
-            <div className="flex gap-6 overflow-x-auto">
-              {Object.entries(weatherData).map(([location, data]) => (
-                <div key={location} className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg min-w-0 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    {getWeatherIcon(data.weatherCode)}
-                    <span className="font-medium text-gray-900">{location}</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span className="flex items-center gap-1">
-                      <Thermometer size={14} />
-                      {data.temperature}°C
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Droplets size={14} />
-                      {data.humidity}%
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Wind size={14} />
-                      {data.windSpeed} km/h
-                    </span>
-                    {data.precipitation > 0 && (
-                      <span className="flex items-center gap-1 text-blue-600 font-medium">
-                        <CloudRain size={14} />
-                        {data.precipitation}mm
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Emergency Request Form Modal - Enhanced */}
+      {/* Emergency Request Form Modal */}
       {showRequestForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -782,12 +417,12 @@ const Dashboard = () => {
                 </h2>
                 <button 
                   onClick={() => setShowRequestForm(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600"
                 >
                   <XCircle size={24} />
                 </button>
               </div>
-              <p className="text-gray-600 mt-2">Fill out this form to request emergency assistance. Our team will respond as quickly as possible based on weather conditions and resource availability.</p>
+              <p className="text-gray-600 mt-2">Fill out this form to request emergency assistance. Our team will respond as quickly as possible.</p>
             </div>
             
             <form onSubmit={handleSubmitRequest} className="p-6 space-y-6">
@@ -797,7 +432,7 @@ const Dashboard = () => {
                   <select 
                     value={newRequest.type} 
                     onChange={(e) => setNewRequest({...newRequest, type: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     required
                   >
                     <option value="food">Food & Supplies</option>
@@ -812,7 +447,7 @@ const Dashboard = () => {
                   <select 
                     value={newRequest.priority} 
                     onChange={(e) => setNewRequest({...newRequest, priority: e.target.value})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     required
                   >
                     <option value="low">Low - Can wait</option>
@@ -831,7 +466,7 @@ const Dashboard = () => {
                     min="1"
                     value={newRequest.victims} 
                     onChange={(e) => setNewRequest({...newRequest, victims: parseInt(e.target.value)})}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     required
                   />
                 </div>
@@ -843,7 +478,7 @@ const Dashboard = () => {
                     value={newRequest.area} 
                     onChange={(e) => setNewRequest({...newRequest, area: e.target.value})}
                     placeholder="e.g., Sector 15, Noida"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     required
                   />
                 </div>
@@ -856,7 +491,7 @@ const Dashboard = () => {
                   onChange={(e) => setNewRequest({...newRequest, description: e.target.value})}
                   placeholder="Describe the situation, specific needs, and any relevant details..."
                   rows="4"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   required
                 />
               </div>
@@ -869,7 +504,7 @@ const Dashboard = () => {
                     value={newRequest.contact} 
                     onChange={(e) => setNewRequest({...newRequest, contact: e.target.value})}
                     placeholder="+91-XXXXXXXXXX"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     required
                   />
                 </div>
@@ -881,7 +516,7 @@ const Dashboard = () => {
                     value={newRequest.reportedBy} 
                     onChange={(e) => setNewRequest({...newRequest, reportedBy: e.target.value})}
                     placeholder="Full name"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     required
                   />
                 </div>
@@ -890,20 +525,19 @@ const Dashboard = () => {
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                 <div className="text-sm text-gray-600">
                   <p><strong>Estimated Response:</strong> {calculateEstimatedResponse(newRequest.priority)}</p>
-                  <p className="text-xs mt-1">*Response times may vary based on weather conditions</p>
                 </div>
                 
                 <div className="flex gap-3">
                   <button 
                     type="button"
                     onClick={() => setShowRequestForm(false)}
-                    className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                    className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
-                    className="bg-red-600 text-white px-8 py-2 rounded-lg hover:bg-red-700 font-medium flex items-center gap-2 transition-colors"
+                    className="bg-red-600 text-white px-8 py-2 rounded-lg hover:bg-red-700 font-medium flex items-center gap-2"
                   >
                     <Send size={16} />
                     Submit Request
@@ -918,7 +552,7 @@ const Dashboard = () => {
       {/* Enhanced Stats Cards with Real-time Metrics */}
       <div className="px-6 py-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-red-100 relative overflow-hidden hover:shadow-xl transition-shadow">
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-red-100 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-20 h-20 bg-red-100 rounded-full -translate-y-10 translate-x-10"></div>
             <div className="flex items-center justify-between relative">
               <div>
@@ -933,7 +567,7 @@ const Dashboard = () => {
             </p>
           </div>
           
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 relative overflow-hidden hover:shadow-xl transition-shadow">
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-20 h-20 bg-blue-100 rounded-full -translate-y-10 translate-x-10"></div>
             <div className="flex items-center justify-between relative">
               <div>
@@ -945,7 +579,7 @@ const Dashboard = () => {
             <p className="text-xs text-blue-500 mt-2">Across {requests.length} locations</p>
           </div>
           
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-green-100 relative overflow-hidden hover:shadow-xl transition-shadow">
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-green-100 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-20 h-20 bg-green-100 rounded-full -translate-y-10 translate-x-10"></div>
             <div className="flex items-center justify-between relative">
               <div>
@@ -957,7 +591,7 @@ const Dashboard = () => {
             <p className="text-xs text-green-500 mt-2">{volunteers.filter(v => v.status === 'deployed').length} deployed</p>
           </div>
           
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-purple-100 relative overflow-hidden hover:shadow-xl transition-shadow">
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-purple-100 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-20 h-20 bg-purple-100 rounded-full -translate-y-10 translate-x-10"></div>
             <div className="flex items-center justify-between relative">
               <div>
@@ -969,7 +603,7 @@ const Dashboard = () => {
             <p className="text-xs text-purple-500 mt-2">{performanceMetrics.totalResourcesDeployed} deployed</p>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-lg border border-orange-100 relative overflow-hidden hover:shadow-xl transition-shadow">
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-orange-100 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-20 h-20 bg-orange-100 rounded-full -translate-y-10 translate-x-10"></div>
             <div className="flex items-center justify-between relative">
               <div>
@@ -1015,16 +649,6 @@ const Dashboard = () => {
             >
               Volunteers
             </button>
-            <button 
-              onClick={() => setActiveTab('weather')}
-              className={`px-6 py-2 rounded-md font-medium transition-all ${
-                activeTab === 'weather' 
-                  ? 'bg-white text-blue-600 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Weather Monitor
-            </button>
           </div>
         </div>
 
@@ -1051,18 +675,7 @@ const Dashboard = () => {
                       <option value="water">Water</option>
                       <option value="shelter">Shelter</option>
                     </select>
-                    <button 
-                      onClick={() => {
-                        setNotifications(prev => [{
-                          id: Date.now(),
-                          type: 'success',
-                          message: 'Auto-routing optimization activated for all available volunteers',
-                          timestamp: new Date().toLocaleTimeString(),
-                          read: false
-                        }, ...prev.slice(0, 4)]);
-                      }}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm flex items-center gap-2 transition-colors"
-                    >
+                    <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm flex items-center gap-2">
                       <Zap size={14} />
                       Auto-Route
                     </button>
@@ -1111,7 +724,7 @@ const Dashboard = () => {
                                 {request.assignedVolunteer ? (
                                   <button
                                     onClick={() => markRequestComplete(request.id)}
-                                    className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700 transition-colors"
+                                    className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
                                   >
                                     <CheckCircle size={12} />
                                   </button>
@@ -1127,10 +740,7 @@ const Dashboard = () => {
                                     ))}
                                   </select>
                                 )}
-                                <button 
-                                  onClick={() => handlePhoneCall(request.contact)}
-                                  className="text-blue-600 hover:text-blue-800 p-1 transition-colors"
-                                >
+                                <button className="text-blue-600 hover:text-blue-800 p-1">
                                   <Phone size={12} />
                                 </button>
                               </div>
@@ -1158,19 +768,11 @@ const Dashboard = () => {
                               </span>
                             </p>
                             <p className="text-sm mb-2"><strong>Missions:</strong> {volunteer.completedMissions}</p>
-                            <div className="flex justify-between items-center">
-                              <span className={`px-2 py-1 rounded text-white text-xs ${
-                                volunteer.status === 'available' ? 'bg-green-500' : 'bg-orange-500'
-                              }`}>
-                                {volunteer.status}
-                              </span>
-                              <button 
-                                onClick={() => handlePhoneCall(volunteer.contact)}
-                                className="text-blue-600 hover:text-blue-800 p-1"
-                              >
-                                <Phone size={12} />
-                              </button>
-                            </div>
+                            <span className={`px-2 py-1 rounded text-white text-xs ${
+                              volunteer.status === 'available' ? 'bg-green-500' : 'bg-orange-500'
+                            }`}>
+                              {volunteer.status}
+                            </span>
                           </div>
                         </Popup>
                       </Marker>
@@ -1216,7 +818,7 @@ const Dashboard = () => {
                     .filter(r => r.priority === 'critical' || r.priority === 'high')
                     .slice(0, 5)
                     .map(request => (
-                      <div key={request.id} className="border border-red-100 rounded-lg p-4 bg-red-50 hover:bg-red-100 transition-colors">
+                      <div key={request.id} className="border border-red-100 rounded-lg p-4 bg-red-50">
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex items-center gap-2">
                             <div 
@@ -1239,22 +841,13 @@ const Dashboard = () => {
                             {request.status}
                           </span>
                           <div className="flex gap-2">
-                            <button 
-                              onClick={() => handlePhoneCall(request.contact)}
-                              className="text-blue-600 hover:text-blue-800 bg-white p-1 rounded shadow transition-colors"
-                            >
+                            <button className="text-blue-600 hover:text-blue-800 bg-white p-1 rounded shadow">
                               <Phone size={14} />
                             </button>
-                            <button 
-                              onClick={() => handleMessage(request.id)}
-                              className="text-green-600 hover:text-green-800 bg-white p-1 rounded shadow transition-colors"
-                            >
+                            <button className="text-green-600 hover:text-green-800 bg-white p-1 rounded shadow">
                               <MessageCircle size={14} />
                             </button>
-                            <button 
-                              onClick={() => handleNavigation(request.lat, request.lng, request.area)}
-                              className="text-purple-600 hover:text-purple-800 bg-white p-1 rounded shadow transition-colors"
-                            >
+                            <button className="text-purple-600 hover:text-purple-800 bg-white p-1 rounded shadow">
                               <Navigation size={14} />
                             </button>
                           </div>
@@ -1289,7 +882,7 @@ const Dashboard = () => {
                 </h3>
                 <div className="space-y-4">
                   {resources.map((resource, index) => (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div key={index} className="border border-gray-200 rounded-lg p-4">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-medium">{resource.type}</span>
                         <span className="text-xs text-gray-500">{resource.lastUpdated}</span>
@@ -1392,16 +985,10 @@ const Dashboard = () => {
                       {volunteer.status}
                     </span>
                     <div className="flex gap-2">
-                      <button 
-                        onClick={() => handlePhoneCall(volunteer.contact)}
-                        className="text-blue-600 hover:text-blue-800 transition-colors"
-                      >
+                      <button className="text-blue-600 hover:text-blue-800">
                         <Phone size={16} />
                       </button>
-                      <button 
-                        onClick={() => handleMessage(`volunteer-${volunteer.id}`)}
-                        className="text-green-600 hover:text-green-800 transition-colors"
-                      >
+                      <button className="text-green-600 hover:text-green-800">
                         <MessageCircle size={16} />
                       </button>
                     </div>
@@ -1412,123 +999,16 @@ const Dashboard = () => {
           </div>
         )}
 
-        {activeTab === 'weather' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                <Cloud className="text-blue-500" size={20} />
-                Real-time Weather Monitoring
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {Object.entries(weatherData).map(([location, data]) => (
-                  <div key={location} className="bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-bold text-gray-900">{location}</h4>
-                      {getWeatherIcon(data.weatherCode)}
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Thermometer className="text-red-500" size={16} />
-                        <div>
-                          <p className="font-medium">{data.temperature}°C</p>
-                          <p className="text-gray-600 text-xs">Temperature</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Droplets className="text-blue-500" size={16} />
-                        <div>
-                          <p className="font-medium">{data.humidity}%</p>
-                          <p className="text-gray-600 text-xs">Humidity</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Wind className="text-gray-500" size={16} />
-                        <div>
-                          <p className="font-medium">{data.windSpeed} km/h</p>
-                          <p className="text-gray-600 text-xs">Wind Speed</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <CloudRain className="text-blue-600" size={16} />
-                        <div>
-                          <p className="font-medium">{data.precipitation}mm</p>
-                          <p className="text-gray-600 text-xs">Precipitation</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {(data.precipitation > 5 || data.windSpeed > 30 || data.temperature > 35) && (
-                      <div className="mt-4 p-3 bg-orange-100 rounded-lg">
-                        <div className="flex items-center gap-2 text-orange-800">
-                          <AlertTriangle size={14} />
-                          <span className="text-xs font-medium">Weather Alert Conditions</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Weather Alerts History */}
-            {weatherAlerts.length > 0 && (
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <AlertTriangle className="text-orange-500" size={20} />
-                  Recent Weather Alerts
-                </h3>
-                <div className="space-y-3 max-h-60 overflow-y-auto">
-                  {weatherAlerts.slice(0, 10).map(alert => (
-                    <div key={alert.id} className={`p-4 rounded-lg border-l-4 ${
-                      alert.severity === 'critical' ? 'bg-red-50 border-red-500' :
-                      alert.severity === 'high' ? 'bg-orange-50 border-orange-500' :
-                      'bg-yellow-50 border-yellow-500'
-                    }`}>
-                      <div className="flex justify-between items-start mb-2">
-                        <span className={`px-2 py-1 rounded text-xs font-medium ${
-                          alert.severity === 'critical' ? 'bg-red-100 text-red-800' :
-                          alert.severity === 'high' ? 'bg-orange-100 text-orange-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {alert.severity.toUpperCase()}
-                        </span>
-                        <span className="text-xs text-gray-500">{alert.timestamp}</span>
-                      </div>
-                      <p className="text-sm text-gray-800">{alert.message}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <MapPin className="text-gray-500" size={12} />
-                        <span className="text-xs text-gray-600">{alert.location}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Enhanced Bottom Section - Comprehensive Activity Table */}
         <div className="mt-6">
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-gray-900">Recent Activity & Operations</h3>
               <div className="flex gap-2">
-                <button 
-                  onClick={exportData}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm flex items-center gap-2 transition-colors"
-                >
-                  <Download size={16} />
+                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm">
                   Export Data
                 </button>
-                <button 
-                  onClick={generateReport}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm flex items-center gap-2 transition-colors"
-                >
-                  <FileText size={16} />
+                <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm">
                   Generate Report
                 </button>
               </div>
@@ -1551,7 +1031,7 @@ const Dashboard = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {requests.slice(0, 10).map(request => (
-                    <tr key={request.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={request.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 font-mono text-xs">#{request.id}</td>
                       <td className="px-4 py-3">{request.area}</td>
                       <td className="px-4 py-3">
@@ -1581,26 +1061,14 @@ const Dashboard = () => {
                       <td className="px-4 py-3 text-gray-600">{request.timestamp}</td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
-                          <button 
-                            onClick={() => handleNavigation(request.lat, request.lng, request.area)}
-                            className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded transition-colors"
-                            title="Navigate to location"
-                          >
+                          <button className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded">
                             <MapPin size={14} />
                           </button>
-                          <button 
-                            onClick={() => handlePhoneCall(request.contact)}
-                            className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded transition-colors"
-                            title="Call contact"
-                          >
+                          <button className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded">
                             <Phone size={14} />
                           </button>
-                          <button 
-                            onClick={() => handleMessage(request.id)}
-                            className="text-purple-600 hover:text-purple-800 p-1 hover:bg-purple-50 rounded transition-colors"
-                            title="Send message"
-                          >
-                            <MessageSquare size={14} />
+                          <button className="text-purple-600 hover:text-purple-800 p-1 hover:bg-purple-50 rounded">
+                            <Truck size={14} />
                           </button>
                         </div>
                       </td>
@@ -1616,4 +1084,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Dash;
